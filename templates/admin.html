@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ app_name }} Admin</title><link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="admin-bg">
+<div class="admin-shell">
+  <div class="admin-header">
+    <div><div class="eyebrow">OPERATIONS CONSOLE</div><h1>Affiliate Operations</h1><p class="muted compact">Manage publisher identity, tracking health, cashback liability, and Shopee session access.</p></div>
+    <a class="soft linkbtn" href="/">Open consumer site</a>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><span>Users</span><b>{{ users }}</b><small>registered members</small></div>
+    <div class="metric"><span>Tracked clicks</span><b>{{ clicks }}</b><small>affiliate activations</small></div>
+    <div class="metric"><span>Confirmed commission</span><b>{{ total_comm }}</b><small>merchant/network income</small></div>
+    <div class="metric"><span>User cashback</span><b>{{ total_cashback }}</b><small>confirmed liability</small></div>
+    <div class="metric"><span>Platform revenue</span><b>{{ revenue }}</b><small>gross margin</small></div>
+  </div>
+
+  <div class="admin-grid">
+    <section class="panel affiliate-panel">
+      <div class="panel-head">
+        <div><div class="eyebrow">AFFILIATE ACCOUNT</div><h2>Shopee Publisher Connection</h2></div>
+        <span id="sessionBadge" class="status {{ 'confirmed' if session.configured else 'rejected' }}">
+          {{ 'CONNECTED' if session.configured else 'NOT CONNECTED' }}
+        </span>
+      </div>
+
+      <div class="affiliate-profile">
+        <div class="affiliate-mark">S</div>
+        <div>
+          <b>Shopee Affiliate</b>
+          <span>Publisher ID: <code>{{ affiliate_id }}</code></span>
+          <span id="sessionText">
+            {% if session.configured %}
+              QR session connected{% if session.connected_at %} • {{ session.connected_at[:19].replace('T',' ') }} UTC{% endif %}
+            {% else %}
+              No authenticated session stored
+            {% endif %}
+          </span>
+        </div>
+      </div>
+
+      <div class="security-note">
+        <b>QR-first secure login</b>
+        <span>Authentication happens on Shopee. This platform does not collect your Shopee password, OTP, or CAPTCHA response. Only the authenticated browser session is stored encrypted.</span>
+      </div>
+
+      <div id="qrState" class="qr-state hidden">
+        <div class="pulse"></div>
+        <div><b id="qrTitle">Opening Shopee QR login…</b><span id="qrDesc">Scan the QR using your Shopee mobile app.</span></div>
+      </div>
+
+      <div class="row-actions">
+        <button id="qrLoginBtn" class="primary" onclick="startQrLogin()">📱 Login with Shopee QR</button>
+        <a class="soft linkbtn" target="_blank" href="/admin/shopee-login?token={{ token }}">Open QR page manually</a>
+      </div>
+
+      {% if session.configured %}
+      <form action="/admin/session/delete" method="post" onsubmit="return confirm('Disconnect Shopee session?')">
+        <input type="hidden" name="token" value="{{ token }}">
+        <button class="danger">Disconnect session</button>
+      </form>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <div class="eyebrow">SYSTEM HEALTH</div><h2>Tracking configuration</h2>
+      <div class="health-row"><span>Affiliate ID</span><b class="{{ 'health-ok' if affiliate_id != 'Not configured' else 'health-bad' }}">{{ 'Ready' if affiliate_id != 'Not configured' else 'Missing' }}</b></div>
+      <div class="health-row"><span>QR session</span><b class="{{ 'health-ok' if session.configured else 'health-warn' }}">{{ 'Connected' if session.configured else 'Optional / disconnected' }}</b></div>
+      <div class="health-row"><span>Click tracking</span><b class="health-ok">Active</b></div>
+      <div class="health-row"><span>Cashback ledger</span><b class="health-ok">Active</b></div>
+      <p class="muted">Long affiliate links are generated from the configured Affiliate ID. QR session is reserved for future official-dashboard workflows and reporting assistance.</p>
+    </section>
+  </div>
+
+  <div class="admin-grid">
+    <section class="panel">
+      <div class="eyebrow">MERCHANTS</div><h2>Merchant configuration</h2>
+      {% for m in merchants %}
+      <div class="merchant-row"><div class="logo small">{{ m.logo_text }}</div><div><b>{{ m.name }}</b><span>{{ m.cashback_label }} • {{ m.status }}</span></div></div>
+      {% endfor %}
+    </section>
+
+    <section class="panel">
+      <div class="eyebrow">RISK & CONTROLS</div><h2>Operational safeguards</h2>
+      <div class="control-item"><b>Pending-first cashback</b><span>Cashback is not available until commission is confirmed.</span></div>
+      <div class="control-item"><b>Unique click IDs</b><span>Every activation gets a unique click_id and sub_id.</span></div>
+      <div class="control-item"><b>Encrypted affiliate session</b><span>Session state is encrypted at rest and can be disconnected instantly.</span></div>
+      <div class="control-item"><b>No credential capture</b><span>QR/password/OTP remain on Shopee-controlled pages.</span></div>
+    </section>
+  </div>
+
+  
+  <div class="admin-grid">
+    <section class="panel">
+      <div class="eyebrow">CONVERSION IMPORT</div><h2>Import Shopee affiliate report</h2>
+      <p class="muted">Upload CSV/XLSX. The importer looks for Sub ID, Order ID, commission, order value, and status. Matching Sub IDs are automatically linked to users and cashback.</p>
+      <form id="reportForm" class="upload"><input type="hidden" name="token" value="{{ token }}"><input type="file" name="file" accept=".csv,.xlsx,.xls" required><button class="primary">Import report</button></form>
+      <pre id="importResult" class="import-result hidden"></pre>
+    </section>
+    <section class="panel">
+      <div class="eyebrow">WITHDRAWALS</div><h2>Pending payout requests</h2>
+      {% for w in withdrawals %}
+      <div class="withdraw-admin-row"><div><b>#{{ w.id }} • {{ w.amount }}</b><span>User {{ w.user_id }} • {{ w.destination }}</span></div><div class="row-actions compact-actions">
+      <form method="post" action="/admin/withdrawals/{{ w.id }}/processing"><input type="hidden" name="token" value="{{ token }}"><button class="soft">Processing</button></form>
+      <form method="post" action="/admin/withdrawals/{{ w.id }}/approve"><input type="hidden" name="token" value="{{ token }}"><button class="primary">Approve</button></form>
+      <form method="post" action="/admin/withdrawals/{{ w.id }}/reject"><input type="hidden" name="token" value="{{ token }}"><button class="danger">Reject</button></form>
+      </div></div>
+      {% else %}<div class="empty">No withdrawal requests.</div>{% endfor %}
+    </section>
+  </div>
+
+<section class="panel">
+    <div class="panel-head"><div><div class="eyebrow">FINANCE</div><h2>Latest conversions</h2></div></div>
+    <div class="table-wrap">
+    <table><thead><tr><th>Order</th><th>Click ID</th><th>Order value</th><th>Commission</th><th>Cashback</th><th>Status</th></tr></thead><tbody>
+    {% for c in conversions %}
+      <tr><td>{{ c.order_id }}</td><td><code>{{ c.click_id }}</code></td><td>{{ c.order_amount }}</td><td>{{ c.commission_amount }}</td><td>{{ c.cashback_amount }}</td><td><span class="status {{ c.status }}">{{ c.status }}</span></td></tr>
+    {% else %}
+      <tr><td colspan="6" class="empty">No conversion data yet.</td></tr>
+    {% endfor %}
+    </tbody></table>
+    </div>
+  </section>
+</div>
+
+<script>
+const TOKEN={{ token|tojson }};
+let activeJob=null, poller=null;
+
+async function startQrLogin(){
+  const btn=document.getElementById('qrLoginBtn');
+  const state=document.getElementById('qrState');
+  btn.disabled=true; state.classList.remove('hidden');
+  document.getElementById('qrTitle').textContent='Starting QR login session…';
+  document.getElementById('qrDesc').textContent='A browser window will open on the server/host. Scan the official Shopee QR code.';
+  const fd=new FormData(); fd.append('token',TOKEN);
+  try{
+    const r=await fetch('/admin/affiliate/qr/start',{method:'POST',body:fd});
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.detail||'Unable to start');
+    activeJob=j.job_id;
+    poller=setInterval(checkQrStatus,1500);
+  }catch(e){
+    btn.disabled=false;
+    document.getElementById('qrTitle').textContent='Unable to start QR login';
+    document.getElementById('qrDesc').textContent=e.message;
+  }
+}
+
+async function checkQrStatus(){
+  if(!activeJob)return;
+  const r=await fetch(`/admin/affiliate/qr/status?token=${encodeURIComponent(TOKEN)}&job_id=${encodeURIComponent(activeJob)}`);
+  const j=await r.json();
+  const title=document.getElementById('qrTitle'),desc=document.getElementById('qrDesc');
+  if(j.status==='waiting_scan'){
+    title.textContent='Waiting for QR scan';
+    desc.textContent='Open Shopee on your phone and scan the QR shown by the official Shopee login page.';
+  }else if(j.status==='connected'){
+    clearInterval(poller);
+    title.textContent='Shopee Affiliate connected';
+    desc.textContent='Encrypted session saved successfully. Refreshing console…';
+    document.getElementById('sessionBadge').className='status confirmed';
+    document.getElementById('sessionBadge').textContent='CONNECTED';
+    setTimeout(()=>location.reload(),1100);
+  }else if(j.status==='timeout'||j.status==='failed'){
+    clearInterval(poller);
+    title.textContent=j.status==='timeout'?'QR login timed out':'QR login failed';
+    desc.textContent=j.error||'Try again.';
+    document.getElementById('qrLoginBtn').disabled=false;
+  }
+}
+
+const rf=document.getElementById('reportForm');
+if(rf){rf.addEventListener('submit',async(e)=>{e.preventDefault();const box=document.getElementById('importResult');box.classList.remove('hidden');box.textContent='Importing report…';const res=await fetch('/admin/import-report',{method:'POST',body:new FormData(rf)});const j=await res.json();box.textContent=JSON.stringify(j,null,2);if(j.ok)setTimeout(()=>location.reload(),1400);});}
+</script>
+</body></html>
