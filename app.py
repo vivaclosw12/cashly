@@ -12,17 +12,25 @@ from fastapi import (
     UploadFile,
     File,
 )
+
 from fastapi.responses import (
     HTMLResponse,
     RedirectResponse,
     JSONResponse,
     FileResponse,
 )
+
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
+
 load_dotenv()
+
+
+# =========================================================
+# LOCAL IMPORTS
+# =========================================================
 
 from db import (
     SessionLocal,
@@ -62,6 +70,10 @@ from auth import (
 from importer import import_report
 
 
+# =========================================================
+# CONFIGURATION
+# =========================================================
+
 APP_NAME = os.getenv(
     "APP_NAME",
     "Cashly",
@@ -92,15 +104,23 @@ MIN_WITHDRAWAL = Decimal(
 )
 
 
+# =========================================================
+# APP
+# =========================================================
+
 app = FastAPI(
     title=f"{APP_NAME} Cashback Platform"
 )
 
+
 app.mount(
     "/static",
-    StaticFiles(directory="static"),
+    StaticFiles(
+        directory="static"
+    ),
     name="static",
 )
+
 
 templates = Jinja2Templates(
     directory="templates"
@@ -108,7 +128,7 @@ templates = Jinja2Templates(
 
 
 # =========================================================
-# QR JOBS
+# QR JOB STORAGE
 # =========================================================
 
 qr_jobs = {}
@@ -121,25 +141,36 @@ qr_lock = asyncio.Lock()
 # =========================================================
 
 def rupiah(value):
+
     try:
+
         return (
             "Rp{:,.0f}"
-            .format(float(value))
-            .replace(",", ".")
+            .format(
+                float(value)
+            )
+            .replace(
+                ",",
+                "."
+            )
         )
+
     except Exception:
+
         return "Rp0"
 
 
 def current_user(
     request: Request,
 ):
+
     user_id = user_id_from_request(
         request
     )
 
     if not user_id:
         return None
+
 
     with SessionLocal() as db:
 
@@ -161,15 +192,20 @@ def wallet(
     entries = (
         db.query(Ledger)
         .filter(
-            Ledger.user_id == user_id
+            Ledger.user_id
+            == user_id
         )
         .all()
     )
 
+
     ledger_balance = sum(
         (
-            Decimal(str(entry.amount))
-            for entry in entries
+            Decimal(
+                str(entry.amount)
+            )
+            for entry
+            in entries
         ),
         Decimal("0"),
     )
@@ -183,12 +219,15 @@ def wallet(
             == Conversion.click_id,
         )
         .filter(
-            Click.user_id == user_id,
+            Click.user_id
+            == user_id,
+
             Conversion.status
             == "pending",
         )
         .all()
     )
+
 
     pending_amount = sum(
         (
@@ -212,12 +251,15 @@ def wallet(
             == Conversion.click_id,
         )
         .filter(
-            Click.user_id == user_id,
+            Click.user_id
+            == user_id,
+
             Conversion.status
             == "confirmed",
         )
         .all()
     )
+
 
     lifetime_amount = sum(
         (
@@ -236,7 +278,9 @@ def wallet(
     reserved_withdrawals = (
         db.query(Withdrawal)
         .filter(
-            Withdrawal.user_id == user_id,
+            Withdrawal.user_id
+            == user_id,
+
             Withdrawal.status.in_(
                 [
                     "pending",
@@ -247,10 +291,13 @@ def wallet(
         .all()
     )
 
+
     reserved_amount = sum(
         (
             Decimal(
-                str(withdrawal.amount)
+                str(
+                    withdrawal.amount
+                )
             )
             for withdrawal
             in reserved_withdrawals
@@ -304,6 +351,7 @@ async def home(
         request
     )
 
+
     with SessionLocal() as db:
 
         merchants = (
@@ -314,6 +362,7 @@ async def home(
             )
             .all()
         )
+
 
         if user:
 
@@ -326,6 +375,7 @@ async def home(
                 db,
                 user.id,
             )
+
 
             recent = (
                 db.query(Conversion)
@@ -345,33 +395,52 @@ async def home(
                 .all()
             )
 
+
         else:
 
             available = Decimal("0")
             pending = Decimal("0")
             lifetime = Decimal("0")
             reserved = Decimal("0")
+
             recent = []
 
 
         return templates.TemplateResponse(
             "index.html",
             {
-                "request": request,
-                "app_name": APP_NAME,
-                "user": user,
-                "merchants": merchants,
-                "balance": rupiah(
-                    available
-                ),
-                "pending": rupiah(
-                    pending
-                ),
-                "lifetime": rupiah(
-                    lifetime
-                ),
-                "recent": recent,
-                "rupiah": rupiah,
+                "request":
+                    request,
+
+                "app_name":
+                    APP_NAME,
+
+                "user":
+                    user,
+
+                "merchants":
+                    merchants,
+
+                "balance":
+                    rupiah(
+                        available
+                    ),
+
+                "pending":
+                    rupiah(
+                        pending
+                    ),
+
+                "lifetime":
+                    rupiah(
+                        lifetime
+                    ),
+
+                "recent":
+                    recent,
+
+                "rupiah":
+                    rupiah,
             },
         )
 
@@ -391,9 +460,14 @@ def login_page(
     return templates.TemplateResponse(
         "auth.html",
         {
-            "request": request,
-            "mode": "login",
-            "app_name": APP_NAME,
+            "request":
+                request,
+
+            "mode":
+                "login",
+
+            "app_name":
+                APP_NAME,
         },
     )
 
@@ -409,9 +483,14 @@ def register_page(
     return templates.TemplateResponse(
         "auth.html",
         {
-            "request": request,
-            "mode": "register",
-            "app_name": APP_NAME,
+            "request":
+                request,
+
+            "mode":
+                "register",
+
+            "app_name":
+                APP_NAME,
         },
     )
 
@@ -455,10 +534,12 @@ def register(
         existing = (
             db.query(User)
             .filter(
-                User.email == email
+                User.email
+                == email
             )
             .first()
         )
+
 
         if existing:
 
@@ -471,10 +552,13 @@ def register(
         user = User(
             name=name,
             email=email,
-            password_hash=hash_password(
-                password
-            ),
+
+            password_hash=
+                hash_password(
+                    password
+                ),
         )
+
 
         db.add(
             user
@@ -497,13 +581,17 @@ def register(
         status_code=303,
     )
 
+
     response.set_cookie(
         "cashly_session",
         token,
+
         httponly=True,
         samesite="lax",
+
         max_age=2592000,
     )
+
 
     return response
 
@@ -528,7 +616,8 @@ def login(
         user = (
             db.query(User)
             .filter(
-                User.email == email
+                User.email
+                == email
             )
             .first()
         )
@@ -558,13 +647,17 @@ def login(
         status_code=303,
     )
 
+
     response.set_cookie(
         "cashly_session",
         token,
+
         httponly=True,
         samesite="lax",
+
         max_age=2592000,
     )
+
 
     return response
 
@@ -579,15 +672,17 @@ def logout():
         status_code=303,
     )
 
+
     response.delete_cookie(
         "cashly_session"
     )
+
 
     return response
 
 
 # =========================================================
-# WALLET
+# USER WALLET
 # =========================================================
 
 @app.get(
@@ -601,6 +696,7 @@ def wallet_page(
     user = current_user(
         request
     )
+
 
     if not user:
 
@@ -654,28 +750,48 @@ def wallet_page(
         return templates.TemplateResponse(
             "wallet.html",
             {
-                "request": request,
-                "user": user,
-                "app_name": APP_NAME,
-                "available": rupiah(
-                    available
-                ),
-                "pending": rupiah(
-                    pending
-                ),
-                "lifetime": rupiah(
-                    lifetime
-                ),
-                "reserved": rupiah(
-                    reserved
-                ),
-                "ledger": ledger,
+                "request":
+                    request,
+
+                "user":
+                    user,
+
+                "app_name":
+                    APP_NAME,
+
+                "available":
+                    rupiah(
+                        available
+                    ),
+
+                "pending":
+                    rupiah(
+                        pending
+                    ),
+
+                "lifetime":
+                    rupiah(
+                        lifetime
+                    ),
+
+                "reserved":
+                    rupiah(
+                        reserved
+                    ),
+
+                "ledger":
+                    ledger,
+
                 "withdrawals":
                     withdrawals,
-                "rupiah": rupiah,
-                "minimum": rupiah(
-                    MIN_WITHDRAWAL
-                ),
+
+                "rupiah":
+                    rupiah,
+
+                "minimum":
+                    rupiah(
+                        MIN_WITHDRAWAL
+                    ),
             },
         )
 
@@ -692,6 +808,7 @@ def withdraw(
     user = current_user(
         request
     )
+
 
     if not user:
 
@@ -743,12 +860,17 @@ def withdraw(
 
         withdrawal = Withdrawal(
             user_id=user.id,
-            amount=amount_decimal,
-            destination=(
-                destination.strip()
-            ),
-            status="pending",
+
+            amount=
+                amount_decimal,
+
+            destination=
+                destination.strip(),
+
+            status=
+                "pending",
         )
+
 
         db.add(
             withdrawal
@@ -764,7 +886,7 @@ def withdraw(
 
 
 # =========================================================
-# SHOPEE CONVERTER
+# SHOPEE LINK CONVERTER
 # =========================================================
 
 @app.post(
@@ -779,12 +901,16 @@ async def convert(
         request
     )
 
+
     if not user:
 
         return JSONResponse(
             {
-                "ok": False,
-                "error": "Login required",
+                "ok":
+                    False,
+
+                "error":
+                    "Login required",
             },
             status_code=401,
         )
@@ -794,7 +920,9 @@ async def convert(
 
         return JSONResponse(
             {
-                "ok": False,
+                "ok":
+                    False,
+
                 "error":
                     "SHOPEE_AFFILIATE_ID belum dikonfigurasi",
             },
@@ -818,7 +946,9 @@ async def convert(
 
             return JSONResponse(
                 {
-                    "ok": False,
+                    "ok":
+                        False,
+
                     "error":
                         "Shopee merchant configuration missing",
                 },
@@ -865,8 +995,10 @@ async def convert(
                     {
                         "origin_link":
                             clean_url,
+
                         "affiliate_id":
                             AFF_ID,
+
                         "sub_id":
                             sub_id,
                     }
@@ -875,17 +1007,26 @@ async def convert(
 
 
             click = Click(
-                click_id=click_id,
-                user_id=user.id,
+                click_id=
+                    click_id,
+
+                user_id=
+                    user.id,
+
                 merchant_id=
                     merchant.id,
+
                 source_url=
                     input_url,
+
                 clean_url=
                     clean_url,
+
                 affiliate_url=
                     affiliate_url,
-                sub_id=sub_id,
+
+                sub_id=
+                    sub_id,
             )
 
 
@@ -897,13 +1038,18 @@ async def convert(
 
 
             return {
-                "ok": True,
+                "ok":
+                    True,
+
                 "click_id":
                     click_id,
+
                 "sub_id":
                     sub_id,
+
                 "clean_url":
                     clean_url,
+
                 "affiliate_url":
                     affiliate_url,
             }
@@ -913,7 +1059,9 @@ async def convert(
 
             return JSONResponse(
                 {
-                    "ok": False,
+                    "ok":
+                        False,
+
                     "error":
                         str(error),
                 },
@@ -993,8 +1141,7 @@ async def admin(
             (
                 Decimal(
                     str(
-                        conversion
-                        .commission_amount
+                        conversion.commission_amount
                     )
                 )
                 for conversion
@@ -1008,8 +1155,7 @@ async def admin(
             (
                 Decimal(
                     str(
-                        conversion
-                        .cashback_amount
+                        conversion.cashback_amount
                     )
                 )
                 for conversion
@@ -1023,8 +1169,7 @@ async def admin(
             (
                 Decimal(
                     str(
-                        conversion
-                        .platform_revenue
+                        conversion.platform_revenue
                     )
                 )
                 for conversion
@@ -1126,7 +1271,9 @@ async def admin_import_report(
 
         return JSONResponse(
             {
-                "ok": False,
+                "ok":
+                    False,
+
                 "error":
                     "Upload CSV/XLSX report.",
             },
@@ -1218,6 +1365,7 @@ def admin_withdrawal(
                 .filter(
                     Ledger.reference
                     == f"WD-{withdrawal.id}",
+
                     Ledger.entry_type
                     == "withdrawal_debit",
                 )
@@ -1256,20 +1404,14 @@ def admin_withdrawal(
             )
 
 
-        elif (
-            action
-            == "reject"
-        ):
+        elif action == "reject":
 
             withdrawal.status = (
                 "rejected"
             )
 
 
-        elif (
-            action
-            == "processing"
-        ):
+        elif action == "processing":
 
             withdrawal.status = (
                 "processing"
@@ -1493,7 +1635,10 @@ async def qr_image(
 
     return FileResponse(
         str(path),
-        media_type="image/png",
+
+        media_type=
+            "image/png",
+
         headers={
             "Cache-Control":
                 "no-store, no-cache, must-revalidate",
@@ -1529,6 +1674,34 @@ async def delete_session(
     return RedirectResponse(
         f"/admin?token={token}",
         status_code=303,
+    )
+
+
+# =========================================================
+# SHOPEE LOGIN FALLBACK
+# =========================================================
+#
+# Ini route yang sebelumnya menghasilkan 404.
+# Route ini hanya mengarahkan admin ke halaman login QR
+# resmi Shopee.
+#
+# =========================================================
+
+@app.get(
+    "/admin/shopee-login"
+)
+async def shopee_login(
+    token: str = "",
+):
+
+    check_admin(
+        token
+    )
+
+
+    return RedirectResponse(
+        "https://shopee.co.id/buyer/login/qr?",
+        status_code=302,
     )
 
 
