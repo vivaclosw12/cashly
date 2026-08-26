@@ -175,8 +175,7 @@
 
                 <span
                     id="sessionBadge"
-                    class="status
-                    {{ 'confirmed' if session.configured else 'rejected' }}"
+                    class="status {{ 'confirmed' if session.configured else 'rejected' }}"
                 >
 
                     {{ 'CONNECTED' if session.configured else 'NOT CONNECTED' }}
@@ -338,6 +337,18 @@
 
 
 
+                <!-- DEBUG STATUS -->
+
+                <div
+                    id="qrDebug"
+                    class="muted compact"
+                    style="margin-top:10px;"
+                >
+                    Waiting for QR job...
+                </div>
+
+
+
                 <!-- INSTRUCTION -->
 
                 <div class="qr-instructions">
@@ -436,10 +447,7 @@
                 </span>
 
                 <b
-                    class="
-                    {{ 'health-ok'
-                    if affiliate_id != 'Not configured'
-                    else 'health-bad' }}"
+                    class="{{ 'health-ok' if affiliate_id != 'Not configured' else 'health-bad' }}"
                 >
 
                     {{
@@ -461,10 +469,7 @@
                 </span>
 
                 <b
-                    class="
-                    {{ 'health-ok'
-                    if session.configured
-                    else 'health-warn' }}"
+                    class="{{ 'health-ok' if session.configured else 'health-warn' }}"
                 >
 
                     {{
@@ -629,18 +634,14 @@
                     </b>
 
                     <span>
-
                         User {{ w.user_id }}
                         •
                         {{ w.destination }}
-
                     </span>
 
                     <span>
-
                         Status:
                         {{ w.status }}
-
                     </span>
 
                 </div>
@@ -1042,6 +1043,54 @@ let qrRefresh = null;
 
 
 // =========================================================
+// HELPERS
+// =========================================================
+
+function setQrDebug(message) {
+
+    const debug =
+        document.getElementById(
+            "qrDebug"
+        );
+
+    if (debug) {
+        debug.textContent =
+            message;
+    }
+
+}
+
+
+function stopQrTimers() {
+
+    if (poller) {
+
+        clearInterval(
+            poller
+        );
+
+        poller =
+            null;
+
+    }
+
+
+    if (qrRefresh) {
+
+        clearInterval(
+            qrRefresh
+        );
+
+        qrRefresh =
+            null;
+
+    }
+
+}
+
+
+
+// =========================================================
 // START QR LOGIN
 // =========================================================
 
@@ -1072,7 +1121,15 @@ async function startQrLogin() {
         );
 
 
-    button.disabled = true;
+    stopQrTimers();
+
+
+    activeJob =
+        null;
+
+
+    button.disabled =
+        true;
 
 
     container.classList.remove(
@@ -1085,9 +1142,26 @@ async function startQrLogin() {
     );
 
 
+    image.removeAttribute(
+        "src"
+    );
+
+
     loading.classList.remove(
         "hidden"
     );
+
+
+    document.getElementById(
+        "qrBadge"
+    ).textContent =
+        "STARTING";
+
+
+    document.getElementById(
+        "qrBadge"
+    ).className =
+        "status pending";
 
 
     document.getElementById(
@@ -1099,7 +1173,12 @@ async function startQrLogin() {
     document.getElementById(
         "qrDesc"
     ).textContent =
-        "Opening official Shopee login page...";
+        "Creating secure browser session...";
+
+
+    setQrDebug(
+        "Sending QR login request..."
+    );
 
 
     const form =
@@ -1124,6 +1203,9 @@ async function startQrLogin() {
 
                     body:
                         form,
+
+                    cache:
+                        "no-store"
                 }
             );
 
@@ -1136,7 +1218,17 @@ async function startQrLogin() {
 
             throw new Error(
                 data.detail ||
+                data.error ||
                 "Unable to start QR login"
+            );
+
+        }
+
+
+        if (!data.job_id) {
+
+            throw new Error(
+                "Backend tidak mengembalikan job_id."
             );
 
         }
@@ -1146,10 +1238,48 @@ async function startQrLogin() {
             data.job_id;
 
 
+        setQrDebug(
+            "QR job: "
+            + activeJob
+            + " — waiting for image..."
+        );
+
+
+        // -----------------------------------------------
+        // LANGSUNG CEK STATUS
+        // -----------------------------------------------
+
+        await checkQrStatus();
+
+
+        // -----------------------------------------------
+        // LANGSUNG COBA AMBIL QR
+        // Tidak menunggu status waiting_scan.
+        // -----------------------------------------------
+
+        await loadQrImage();
+
+
+        // -----------------------------------------------
+        // POLLING STATUS
+        // -----------------------------------------------
+
         poller =
             setInterval(
                 checkQrStatus,
                 1200
+            );
+
+
+        // -----------------------------------------------
+        // POLLING IMAGE
+        // Ini perbaikan utama.
+        // -----------------------------------------------
+
+        qrRefresh =
+            setInterval(
+                loadQrImage,
+                2000
             );
 
 
@@ -1160,6 +1290,21 @@ async function startQrLogin() {
 
         button.disabled =
             false;
+
+
+        stopQrTimers();
+
+
+        document.getElementById(
+            "qrBadge"
+        ).textContent =
+            "FAILED";
+
+
+        document.getElementById(
+            "qrBadge"
+        ).className =
+            "status rejected";
 
 
         document.getElementById(
@@ -1174,7 +1319,14 @@ async function startQrLogin() {
             error.message;
 
 
+        setQrDebug(
+            "Start error: "
+            + error.message
+        );
+
+
     }
+
 
 }
 
@@ -1187,8 +1339,9 @@ async function startQrLogin() {
 async function loadQrImage() {
 
 
-    if (!activeJob)
+    if (!activeJob) {
         return;
+    }
 
 
     const image =
@@ -1229,17 +1382,44 @@ async function loadQrImage() {
                 url,
                 {
                     cache:
-                        "no-store",
+                        "no-store"
                 }
             );
 
 
-        if (!response.ok)
+        if (!response.ok) {
+
+
+            setQrDebug(
+                "QR image belum siap — HTTP "
+                + response.status
+            );
+
+
             return;
+
+        }
 
 
         const blob =
             await response.blob();
+
+
+        if (
+            !blob
+            ||
+            blob.size === 0
+        ) {
+
+
+            setQrDebug(
+                "QR endpoint returned empty image."
+            );
+
+
+            return;
+
+        }
 
 
         const objectURL =
@@ -1263,30 +1443,63 @@ async function loadQrImage() {
             objectURL;
 
 
+        image.onload =
+            function () {
+
+
+                image.classList.remove(
+                    "hidden"
+                );
+
+
+                loading.classList.add(
+                    "hidden"
+                );
+
+
+                setQrDebug(
+                    "QR image loaded successfully."
+                );
+
+
+            };
+
+
+        image.onerror =
+            function () {
+
+
+                setQrDebug(
+                    "Browser gagal render QR image."
+                );
+
+
+            };
+
+
         image.src =
             objectURL;
-
-
-        image.classList.remove(
-            "hidden"
-        );
-
-
-        loading.classList.add(
-            "hidden"
-        );
 
 
     }
 
     catch (error) {
 
-        console.log(
-            "QR image not ready",
+
+        setQrDebug(
+            "QR image request error: "
+            + error.message
+        );
+
+
+        console.error(
+            "QR image error",
             error
         );
 
+
     }
+
 
 }
 
@@ -1299,8 +1512,9 @@ async function loadQrImage() {
 async function checkQrStatus() {
 
 
-    if (!activeJob)
+    if (!activeJob) {
         return;
+    }
 
 
     try {
@@ -1323,7 +1537,7 @@ async function checkQrStatus() {
 
                 {
                     cache:
-                        "no-store",
+                        "no-store"
                 }
 
             );
@@ -1337,11 +1551,11 @@ async function checkQrStatus() {
 
             throw new Error(
                 data.detail ||
+                data.error ||
                 "Unable to read QR status"
             );
 
         }
-
 
 
         const title =
@@ -1362,16 +1576,37 @@ async function checkQrStatus() {
             );
 
 
+        // -------------------------------------------------
+        // DEBUG
+        // -------------------------------------------------
 
+        setQrDebug(
+            "Backend status: "
+            + data.status
+            + " | QR ready: "
+            + String(
+                data.qr_ready
+            )
+        );
+
+
+
+        // =================================================
         // QUEUED
+        // =================================================
 
         if (
-            data.status === "queued"
+            data.status ===
+            "queued"
         ) {
 
 
             badge.textContent =
                 "STARTING";
+
+
+            badge.className =
+                "status pending";
 
 
             title.textContent =
@@ -1386,15 +1621,22 @@ async function checkQrStatus() {
 
 
 
+        // =================================================
         // OPENING
+        // =================================================
 
         else if (
-            data.status === "opening"
+            data.status ===
+            "opening"
         ) {
 
 
             badge.textContent =
                 "OPENING";
+
+
+            badge.className =
+                "status pending";
 
 
             title.textContent =
@@ -1409,7 +1651,9 @@ async function checkQrStatus() {
 
 
 
+        // =================================================
         // WAITING SCAN
+        // =================================================
 
         else if (
             data.status ===
@@ -1433,27 +1677,17 @@ async function checkQrStatus() {
                 "Scan using the Shopee app on your phone.";
 
 
-            loadQrImage();
-
-
-            if (!qrRefresh) {
-
-
-                qrRefresh =
-                    setInterval(
-                        loadQrImage,
-                        5000
-                    );
-
-
-            }
+            // Tidak membuat interval baru di sini.
+            // qrRefresh sudah aktif sejak start.
 
 
         }
 
 
 
+        // =================================================
         // CONFIRMING
+        // =================================================
 
         else if (
             data.status ===
@@ -1481,7 +1715,9 @@ async function checkQrStatus() {
 
 
 
+        // =================================================
         // CONNECTED
+        // =================================================
 
         else if (
             data.status ===
@@ -1489,22 +1725,7 @@ async function checkQrStatus() {
         ) {
 
 
-            clearInterval(
-                poller
-            );
-
-
-            clearInterval(
-                qrRefresh
-            );
-
-
-            poller =
-                null;
-
-
-            qrRefresh =
-                null;
+            stopQrTimers();
 
 
             badge.textContent =
@@ -1521,6 +1742,11 @@ async function checkQrStatus() {
 
             desc.textContent =
                 "Encrypted session saved successfully.";
+
+
+            setQrDebug(
+                "Shopee session connected successfully."
+            );
 
 
             document.getElementById(
@@ -1549,7 +1775,9 @@ async function checkQrStatus() {
 
 
 
+        // =================================================
         // FAILED / TIMEOUT
+        // =================================================
 
         else if (
 
@@ -1564,22 +1792,7 @@ async function checkQrStatus() {
         ) {
 
 
-            clearInterval(
-                poller
-            );
-
-
-            clearInterval(
-                qrRefresh
-            );
-
-
-            poller =
-                null;
-
-
-            qrRefresh =
-                null;
+            stopQrTimers();
 
 
             document.getElementById(
@@ -1615,6 +1828,15 @@ async function checkQrStatus() {
                 "Please try again.";
 
 
+            setQrDebug(
+                "Backend error: "
+                + (
+                    data.error ||
+                    data.status
+                )
+            );
+
+
         }
 
 
@@ -1623,7 +1845,14 @@ async function checkQrStatus() {
     catch (error) {
 
 
+        setQrDebug(
+            "Status request error: "
+            + error.message
+        );
+
+
         console.error(
+            "QR status error",
             error
         );
 
@@ -1686,7 +1915,7 @@ if (reportForm) {
                             body:
                                 new FormData(
                                     reportForm
-                                ),
+                                )
                         }
                     );
 
