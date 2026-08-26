@@ -7,161 +7,79 @@
 
     <title>{{ app_name }} — Admin</title>
 
-    <link
-        rel="stylesheet"
-        href="/static/app.css"
-    >
+    <link rel="stylesheet" href="/static/app.css">
 </head>
-
 
 <body class="admin-bg">
 
 <div class="admin-shell">
 
-
-    <!-- =====================================================
-         HEADER
-    ====================================================== -->
+    <!-- HEADER -->
 
     <div class="admin-header">
-
         <div>
+            <div class="eyebrow">OPERATIONS CONSOLE</div>
 
-            <div class="eyebrow">
-                OPERATIONS CONSOLE
-            </div>
-
-            <h1>
-                Affiliate Operations
-            </h1>
+            <h1>Affiliate Operations</h1>
 
             <p class="muted compact">
                 Manage affiliate connection, cashback,
                 conversions, withdrawals and platform revenue.
             </p>
-
         </div>
 
-
-        <a
-            class="soft linkbtn"
-            href="/"
-        >
+        <a class="soft linkbtn" href="/">
             Open consumer site
         </a>
-
     </div>
 
 
-
-    <!-- =====================================================
-         METRICS
-    ====================================================== -->
+    <!-- METRICS -->
 
     <div class="metrics">
 
         <div class="metric">
-
-            <span>
-                Users
-            </span>
-
-            <b>
-                {{ users }}
-            </b>
-
-            <small>
-                registered members
-            </small>
-
+            <span>Users</span>
+            <b>{{ users }}</b>
+            <small>registered members</small>
         </div>
 
-
         <div class="metric">
-
-            <span>
-                Tracked clicks
-            </span>
-
-            <b>
-                {{ clicks }}
-            </b>
-
-            <small>
-                affiliate activations
-            </small>
-
+            <span>Tracked clicks</span>
+            <b>{{ clicks }}</b>
+            <small>affiliate activations</small>
         </div>
 
-
         <div class="metric">
-
-            <span>
-                Confirmed commission
-            </span>
-
-            <b>
-                {{ total_comm }}
-            </b>
-
-            <small>
-                affiliate income
-            </small>
-
+            <span>Confirmed commission</span>
+            <b>{{ total_comm }}</b>
+            <small>affiliate income</small>
         </div>
 
-
         <div class="metric">
-
-            <span>
-                User cashback
-            </span>
-
-            <b>
-                {{ total_cashback }}
-            </b>
-
-            <small>
-                cashback liability
-            </small>
-
+            <span>User cashback</span>
+            <b>{{ total_cashback }}</b>
+            <small>cashback liability</small>
         </div>
 
-
         <div class="metric">
-
-            <span>
-                Platform revenue
-            </span>
-
-            <b>
-                {{ revenue }}
-            </b>
-
-            <small>
-                gross margin
-            </small>
-
+            <span>Platform revenue</span>
+            <b>{{ revenue }}</b>
+            <small>gross margin</small>
         </div>
 
     </div>
 
 
-
-    <!-- =====================================================
-         SHOPEE AFFILIATE
-    ====================================================== -->
+    <!-- AFFILIATE + HEALTH -->
 
     <div class="admin-grid">
 
-
         <section class="panel affiliate-panel">
-
 
             <div class="panel-head">
 
                 <div>
-
                     <div class="eyebrow">
                         AFFILIATE ACCOUNT
                     </div>
@@ -169,50 +87,34 @@
                     <h2>
                         Shopee Publisher Connection
                     </h2>
-
                 </div>
-
 
                 <span
                     id="sessionBadge"
                     class="status {{ 'confirmed' if session.configured else 'rejected' }}"
                 >
-
                     {{ 'CONNECTED' if session.configured else 'NOT CONNECTED' }}
-
                 </span>
 
             </div>
 
 
-
-            <!-- AFFILIATE PROFILE -->
+            <!-- PROFILE -->
 
             <div class="affiliate-profile">
-
 
                 <div class="affiliate-mark">
                     S
                 </div>
 
-
                 <div>
 
-                    <b>
-                        Shopee Affiliate
-                    </b>
-
+                    <b>Shopee Affiliate</b>
 
                     <span>
-
                         Publisher ID:
-
-                        <code>
-                            {{ affiliate_id }}
-                        </code>
-
+                        <code>{{ affiliate_id }}</code>
                     </span>
-
 
                     <span id="sessionText">
 
@@ -221,11 +123,7 @@
                             QR session connected
 
                             {% if session.connected_at %}
-
-                                •
-                                {{ session.connected_at[:19].replace('T',' ') }}
-                                UTC
-
+                                • {{ session.connected_at[:19].replace('T',' ') }} UTC
                             {% endif %}
 
                         {% else %}
@@ -238,21 +136,16 @@
 
                 </div>
 
-
             </div>
-
 
 
             <!-- SECURITY -->
 
             <div class="security-note">
 
-                <b>
-                    Secure QR Login
-                </b>
+                <b>Secure QR Login</b>
 
                 <span>
-
                     Authentication takes place on Shopee's
                     official login page.
 
@@ -261,25 +154,19 @@
 
                     After successful authentication,
                     the browser session is stored encrypted.
-
                 </span>
 
             </div>
 
 
-
-            <!-- =====================================================
-                 QR LOGIN AREA
-            ====================================================== -->
+            <!-- QR LOGIN -->
 
             <div
                 id="qrState"
                 class="qr-login-box hidden"
             >
 
-
                 <div class="qr-header">
-
 
                     <div>
 
@@ -293,23 +180,19 @@
 
                     </div>
 
-
                     <span
-                        class="status pending"
                         id="qrBadge"
+                        class="status pending"
                     >
                         STARTING
                     </span>
 
-
                 </div>
 
 
-
-                <!-- QR IMAGE -->
+                <!-- QR DISPLAY -->
 
                 <div class="qr-display">
-
 
                     <div
                         id="qrLoading"
@@ -324,32 +207,31 @@
 
                     </div>
 
-
-
                     <img
                         id="qrImage"
                         class="hidden"
                         alt="Shopee QR Login"
                     >
 
-
                 </div>
 
 
-
-                <!-- DEBUG STATUS -->
+                <!-- LIVE DIAGNOSTIC -->
 
                 <div
                     id="qrDebug"
                     class="muted compact"
-                    style="margin-top:10px;"
+                    style="
+                        margin-top:12px;
+                        padding:10px 12px;
+                        border-radius:10px;
+                        background:rgba(0,0,0,.04);
+                        word-break:break-word;
+                    "
                 >
                     Waiting for QR job...
                 </div>
 
-
-
-                <!-- INSTRUCTION -->
 
                 <div class="qr-instructions">
 
@@ -358,36 +240,32 @@
                     </b>
 
                     <span>
-
                         Buka aplikasi Shopee di HP kamu,
                         scan QR di atas dan konfirmasi login.
 
                         Jangan tutup halaman ini sampai
                         status berubah menjadi Connected.
-
                     </span>
 
                 </div>
 
-
             </div>
 
 
-
-            <!-- QR BUTTON -->
+            <!-- LOGIN BUTTON -->
 
             <div class="row-actions">
 
                 <button
                     id="qrLoginBtn"
                     class="primary"
+                    type="button"
                     onclick="startQrLogin()"
                 >
                     📱 Login with Shopee QR
                 </button>
 
             </div>
-
 
 
             <!-- DISCONNECT -->
@@ -417,27 +295,20 @@
 
             {% endif %}
 
-
         </section>
 
 
-
-        <!-- =====================================================
-             SYSTEM HEALTH
-        ====================================================== -->
+        <!-- SYSTEM HEALTH -->
 
         <section class="panel">
-
 
             <div class="eyebrow">
                 SYSTEM HEALTH
             </div>
 
-
             <h2>
                 Tracking configuration
             </h2>
-
 
 
             <div class="health-row">
@@ -446,9 +317,7 @@
                     Affiliate ID
                 </span>
 
-                <b
-                    class="{{ 'health-ok' if affiliate_id != 'Not configured' else 'health-bad' }}"
-                >
+                <b class="{{ 'health-ok' if affiliate_id != 'Not configured' else 'health-bad' }}">
 
                     {{
                         'Ready'
@@ -461,16 +330,13 @@
             </div>
 
 
-
             <div class="health-row">
 
                 <span>
                     QR session
                 </span>
 
-                <b
-                    class="{{ 'health-ok' if session.configured else 'health-warn' }}"
-                >
+                <b class="{{ 'health-ok' if session.configured else 'health-warn' }}">
 
                     {{
                         'Connected'
@@ -483,84 +349,51 @@
             </div>
 
 
-
             <div class="health-row">
-
-                <span>
-                    Click tracking
-                </span>
-
-                <b class="health-ok">
-                    Active
-                </b>
-
+                <span>Click tracking</span>
+                <b class="health-ok">Active</b>
             </div>
 
 
-
             <div class="health-row">
-
-                <span>
-                    Cashback ledger
-                </span>
-
-                <b class="health-ok">
-                    Active
-                </b>
-
+                <span>Cashback ledger</span>
+                <b class="health-ok">Active</b>
             </div>
-
 
 
             <p class="muted">
-
                 Every generated shopping link receives
                 a unique Click ID and Sub ID.
 
                 Affiliate reports can then match
                 conversions back to individual users.
-
             </p>
 
-
         </section>
-
 
     </div>
 
 
-
-    <!-- =====================================================
-         REPORT IMPORT + WITHDRAWALS
-    ====================================================== -->
+    <!-- REPORT + WITHDRAWALS -->
 
     <div class="admin-grid">
 
-
-        <!-- REPORT IMPORT -->
-
         <section class="panel">
-
 
             <div class="eyebrow">
                 CONVERSION IMPORT
             </div>
 
-
             <h2>
                 Import Shopee Affiliate Report
             </h2>
 
-
             <p class="muted">
-
                 Upload CSV or XLSX affiliate reports.
 
                 Cashly will attempt to identify Sub ID,
                 Order ID, commission, order value and status.
-
             </p>
-
 
 
             <form
@@ -574,14 +407,12 @@
                     value="{{ token }}"
                 >
 
-
                 <input
                     type="file"
                     name="file"
                     accept=".csv,.xlsx,.xls"
                     required
                 >
-
 
                 <button
                     class="primary"
@@ -590,9 +421,7 @@
                     Import Report
                 </button>
 
-
             </form>
-
 
 
             <pre
@@ -600,32 +429,25 @@
                 class="import-result hidden"
             ></pre>
 
-
         </section>
-
 
 
         <!-- WITHDRAWALS -->
 
         <section class="panel">
 
-
             <div class="eyebrow">
                 WITHDRAWALS
             </div>
-
 
             <h2>
                 Payout Requests
             </h2>
 
 
-
             {% for w in withdrawals %}
 
-
             <div class="withdraw-admin-row">
-
 
                 <div>
 
@@ -640,16 +462,13 @@
                     </span>
 
                     <span>
-                        Status:
-                        {{ w.status }}
+                        Status: {{ w.status }}
                     </span>
 
                 </div>
 
 
-
                 <div class="row-actions compact-actions">
-
 
                     <form
                         method="post"
@@ -667,7 +486,6 @@
                         </button>
 
                     </form>
-
 
 
                     <form
@@ -688,7 +506,6 @@
                     </form>
 
 
-
                     <form
                         method="post"
                         action="/admin/withdrawals/{{ w.id }}/reject"
@@ -706,45 +523,32 @@
 
                     </form>
 
-
                 </div>
-
 
             </div>
 
-
             {% else %}
-
 
             <div class="empty">
                 No withdrawal requests.
             </div>
 
-
             {% endfor %}
 
-
         </section>
-
 
     </div>
 
 
-
-    <!-- =====================================================
-         MERCHANTS + CONTROLS
-    ====================================================== -->
+    <!-- MERCHANTS + CONTROLS -->
 
     <div class="admin-grid">
 
-
         <section class="panel">
-
 
             <div class="eyebrow">
                 MERCHANTS
             </div>
-
 
             <h2>
                 Merchant Configuration
@@ -753,14 +557,11 @@
 
             {% for m in merchants %}
 
-
             <div class="merchant-row">
-
 
                 <div class="logo small">
                     {{ m.logo_text }}
                 </div>
-
 
                 <div>
 
@@ -776,29 +577,22 @@
 
                 </div>
 
-
             </div>
 
-
             {% endfor %}
-
 
         </section>
 
 
-
         <section class="panel">
-
 
             <div class="eyebrow">
                 RISK & CONTROLS
             </div>
 
-
             <h2>
                 Operational Safeguards
             </h2>
-
 
 
             <div class="control-item">
@@ -815,7 +609,6 @@
             </div>
 
 
-
             <div class="control-item">
 
                 <b>
@@ -828,7 +621,6 @@
                 </span>
 
             </div>
-
 
 
             <div class="control-item">
@@ -845,7 +637,6 @@
             </div>
 
 
-
             <div class="control-item">
 
                 <b>
@@ -859,23 +650,16 @@
 
             </div>
 
-
         </section>
-
 
     </div>
 
 
-
-    <!-- =====================================================
-         CONVERSION TABLE
-    ====================================================== -->
+    <!-- CONVERSIONS -->
 
     <section class="panel">
 
-
         <div class="panel-head">
-
 
             <div>
 
@@ -889,107 +673,66 @@
 
             </div>
 
-
         </div>
-
 
 
         <div class="table-wrap">
 
-
             <table>
-
 
                 <thead>
 
                     <tr>
-
-                        <th>
-                            Order
-                        </th>
-
-                        <th>
-                            Click ID
-                        </th>
-
-                        <th>
-                            Order Value
-                        </th>
-
-                        <th>
-                            Commission
-                        </th>
-
-                        <th>
-                            Cashback
-                        </th>
-
-                        <th>
-                            Status
-                        </th>
-
+                        <th>Order</th>
+                        <th>Click ID</th>
+                        <th>Order Value</th>
+                        <th>Commission</th>
+                        <th>Cashback</th>
+                        <th>Status</th>
                     </tr>
 
                 </thead>
 
 
-
                 <tbody>
-
 
                 {% for c in conversions %}
 
-
                     <tr>
-
 
                         <td>
                             {{ c.order_id }}
                         </td>
 
-
                         <td>
-
                             <code>
                                 {{ c.click_id }}
                             </code>
-
                         </td>
-
 
                         <td>
                             {{ c.order_amount }}
                         </td>
 
-
                         <td>
                             {{ c.commission_amount }}
                         </td>
-
 
                         <td>
                             {{ c.cashback_amount }}
                         </td>
 
-
                         <td>
 
-                            <span
-                                class="status {{ c.status }}"
-                            >
-
+                            <span class="status {{ c.status }}">
                                 {{ c.status }}
-
                             </span>
 
                         </td>
 
-
                     </tr>
 
-
                 {% else %}
-
 
                     <tr>
 
@@ -997,69 +740,58 @@
                             colspan="6"
                             class="empty"
                         >
-
                             No conversion data yet.
-
                         </td>
 
                     </tr>
 
-
                 {% endfor %}
-
 
                 </tbody>
 
-
             </table>
-
 
         </div>
 
-
     </section>
-
 
 </div>
 
 
-
-<!-- =========================================================
+<!-- =====================================================
      JAVASCRIPT
-========================================================== -->
+====================================================== -->
 
 <script>
 
-
 const TOKEN = {{ token|tojson }};
 
-
 let activeJob = null;
-
 let poller = null;
-
 let qrRefresh = null;
 
 
-
-// =========================================================
-// HELPERS
-// =========================================================
+// =====================================================
+// DEBUG
+// =====================================================
 
 function setQrDebug(message) {
 
-    const debug =
+    const el =
         document.getElementById(
             "qrDebug"
         );
 
-    if (debug) {
-        debug.textContent =
-            message;
+    if (el) {
+        el.textContent = message;
     }
 
 }
 
+
+// =====================================================
+// STOP TIMERS
+// =====================================================
 
 function stopQrTimers() {
 
@@ -1069,8 +801,7 @@ function stopQrTimers() {
             poller
         );
 
-        poller =
-            null;
+        poller = null;
 
     }
 
@@ -1081,39 +812,33 @@ function stopQrTimers() {
             qrRefresh
         );
 
-        qrRefresh =
-            null;
+        qrRefresh = null;
 
     }
 
 }
 
 
-
-// =========================================================
+// =====================================================
 // START QR LOGIN
-// =========================================================
+// =====================================================
 
 async function startQrLogin() {
-
 
     const button =
         document.getElementById(
             "qrLoginBtn"
         );
 
-
     const container =
         document.getElementById(
             "qrState"
         );
 
-
     const image =
         document.getElementById(
             "qrImage"
         );
-
 
     const loading =
         document.getElementById(
@@ -1123,29 +848,21 @@ async function startQrLogin() {
 
     stopQrTimers();
 
+    activeJob = null;
 
-    activeJob =
-        null;
-
-
-    button.disabled =
-        true;
-
+    button.disabled = true;
 
     container.classList.remove(
         "hidden"
     );
 
-
     image.classList.add(
         "hidden"
     );
 
-
     image.removeAttribute(
         "src"
     );
-
 
     loading.classList.remove(
         "hidden"
@@ -1177,7 +894,7 @@ async function startQrLogin() {
 
 
     setQrDebug(
-        "Sending QR login request..."
+        "Creating QR job..."
     );
 
 
@@ -1193,19 +910,13 @@ async function startQrLogin() {
 
     try {
 
-
         const response =
             await fetch(
                 "/admin/affiliate/qr/start",
                 {
-                    method:
-                        "POST",
-
-                    body:
-                        form,
-
-                    cache:
-                        "no-store"
+                    method: "POST",
+                    body: form,
+                    cache: "no-store"
                 }
             );
 
@@ -1219,7 +930,7 @@ async function startQrLogin() {
             throw new Error(
                 data.detail ||
                 data.error ||
-                "Unable to start QR login"
+                "Unable to start QR login."
             );
 
         }
@@ -1228,7 +939,7 @@ async function startQrLogin() {
         if (!data.job_id) {
 
             throw new Error(
-                "Backend tidak mengembalikan job_id."
+                "Backend did not return job_id."
             );
 
         }
@@ -1239,30 +950,23 @@ async function startQrLogin() {
 
 
         setQrDebug(
-            "QR job: "
+            "Job "
             + activeJob
-            + " — waiting for image..."
+            + " created."
         );
 
 
-        // -----------------------------------------------
-        // LANGSUNG CEK STATUS
-        // -----------------------------------------------
+        // Immediately check backend
 
         await checkQrStatus();
 
 
-        // -----------------------------------------------
-        // LANGSUNG COBA AMBIL QR
-        // Tidak menunggu status waiting_scan.
-        // -----------------------------------------------
+        // Immediately try image
 
         await loadQrImage();
 
 
-        // -----------------------------------------------
-        // POLLING STATUS
-        // -----------------------------------------------
+        // Status polling
 
         poller =
             setInterval(
@@ -1271,10 +975,7 @@ async function startQrLogin() {
             );
 
 
-        // -----------------------------------------------
-        // POLLING IMAGE
-        // Ini perbaikan utama.
-        // -----------------------------------------------
+        // Image polling independent from status
 
         qrRefresh =
             setInterval(
@@ -1282,17 +983,14 @@ async function startQrLogin() {
                 2000
             );
 
-
     }
 
     catch (error) {
 
+        stopQrTimers();
 
         button.disabled =
             false;
-
-
-        stopQrTimers();
 
 
         document.getElementById(
@@ -1324,20 +1022,16 @@ async function startQrLogin() {
             + error.message
         );
 
-
     }
-
 
 }
 
 
-
-// =========================================================
-// LOAD QR SCREENSHOT
-// =========================================================
+// =====================================================
+// LOAD QR IMAGE
+// =====================================================
 
 async function loadQrImage() {
-
 
     if (!activeJob) {
         return;
@@ -1357,44 +1051,38 @@ async function loadQrImage() {
 
 
     const url =
-
         "/admin/affiliate/qr/image"
-
         + "?token="
-        + encodeURIComponent(
-            TOKEN
-        )
-
+        + encodeURIComponent(TOKEN)
         + "&job_id="
-        + encodeURIComponent(
-            activeJob
-        )
-
+        + encodeURIComponent(activeJob)
         + "&t="
         + Date.now();
 
 
     try {
 
-
         const response =
             await fetch(
                 url,
                 {
-                    cache:
-                        "no-store"
+                    cache: "no-store"
                 }
             );
 
 
         if (!response.ok) {
 
+            if (
+                response.status !== 404
+            ) {
 
-            setQrDebug(
-                "QR image belum siap — HTTP "
-                + response.status
-            );
+                setQrDebug(
+                    "QR image endpoint HTTP "
+                    + response.status
+                );
 
+            }
 
             return;
 
@@ -1405,17 +1093,11 @@ async function loadQrImage() {
             await response.blob();
 
 
-        if (
-            !blob
-            ||
-            blob.size === 0
-        ) {
-
+        if (!blob.size) {
 
             setQrDebug(
-                "QR endpoint returned empty image."
+                "QR image endpoint returned an empty file."
             );
-
 
             return;
 
@@ -1446,21 +1128,13 @@ async function loadQrImage() {
         image.onload =
             function () {
 
-
                 image.classList.remove(
                     "hidden"
                 );
 
-
                 loading.classList.add(
                     "hidden"
                 );
-
-
-                setQrDebug(
-                    "QR image loaded successfully."
-                );
-
 
             };
 
@@ -1468,11 +1142,9 @@ async function loadQrImage() {
         image.onerror =
             function () {
 
-
                 setQrDebug(
-                    "Browser gagal render QR image."
+                    "Browser could not render QR PNG."
                 );
-
 
             };
 
@@ -1480,37 +1152,25 @@ async function loadQrImage() {
         image.src =
             objectURL;
 
-
     }
 
     catch (error) {
 
-
-        setQrDebug(
-            "QR image request error: "
-            + error.message
-        );
-
-
         console.error(
-            "QR image error",
+            "QR image request:",
             error
         );
 
-
     }
-
 
 }
 
 
-
-// =========================================================
+// =====================================================
 // CHECK QR STATUS
-// =========================================================
+// =====================================================
 
 async function checkQrStatus() {
-
 
     if (!activeJob) {
         return;
@@ -1519,25 +1179,17 @@ async function checkQrStatus() {
 
     try {
 
-
         const response =
             await fetch(
 
                 "/admin/affiliate/qr/status"
-
                 + "?token="
-                + encodeURIComponent(
-                    TOKEN
-                )
-
+                + encodeURIComponent(TOKEN)
                 + "&job_id="
-                + encodeURIComponent(
-                    activeJob
-                ),
+                + encodeURIComponent(activeJob),
 
                 {
-                    cache:
-                        "no-store"
+                    cache: "no-store"
                 }
 
             );
@@ -1552,7 +1204,7 @@ async function checkQrStatus() {
             throw new Error(
                 data.detail ||
                 data.error ||
-                "Unable to read QR status"
+                "Unable to read QR status."
             );
 
         }
@@ -1576,161 +1228,183 @@ async function checkQrStatus() {
             );
 
 
-        // -------------------------------------------------
-        // DEBUG
-        // -------------------------------------------------
+        // ==============================================
+        // IMPORTANT DIAGNOSTIC
+        // ==============================================
 
-        setQrDebug(
-            "Backend status: "
-            + data.status
+        let diagnostic =
+            "Status: "
+            + (data.status || "unknown")
+
+            + " | Stage: "
+            + (data.stage || "unknown")
+
             + " | QR ready: "
             + String(
-                data.qr_ready
-            )
+                Boolean(
+                    data.qr_ready
+                )
+            );
+
+
+        if (
+            data.http_status
+        ) {
+
+            diagnostic +=
+                " | HTTP: "
+                + data.http_status;
+
+        }
+
+
+        if (
+            data.current_url
+        ) {
+
+            diagnostic +=
+                " | URL: "
+                + data.current_url;
+
+        }
+
+
+        if (
+            data.navigation_warning
+        ) {
+
+            diagnostic +=
+                " | Navigation: "
+                + data.navigation_warning;
+
+        }
+
+
+        if (
+            data.worker_error
+        ) {
+
+            diagnostic +=
+                " | ERROR: "
+                + data.worker_error;
+
+        }
+
+
+        setQrDebug(
+            diagnostic
         );
 
 
-
-        // =================================================
+        // ==============================================
         // QUEUED
-        // =================================================
+        // ==============================================
 
         if (
-            data.status ===
-            "queued"
+            data.status === "queued"
         ) {
-
 
             badge.textContent =
                 "STARTING";
 
-
             badge.className =
                 "status pending";
-
 
             title.textContent =
                 "Preparing Shopee";
 
-
             desc.textContent =
                 "Starting secure browser session.";
-
 
         }
 
 
-
-        // =================================================
+        // ==============================================
         // OPENING
-        // =================================================
+        // ==============================================
 
         else if (
-            data.status ===
-            "opening"
+            data.status === "opening"
         ) {
-
 
             badge.textContent =
                 "OPENING";
 
-
             badge.className =
                 "status pending";
-
 
             title.textContent =
                 "Opening Shopee";
 
-
             desc.textContent =
                 "Loading official Shopee QR login page.";
-
 
         }
 
 
-
-        // =================================================
+        // ==============================================
         // WAITING SCAN
-        // =================================================
+        // ==============================================
 
         else if (
-            data.status ===
-            "waiting_scan"
+            data.status === "waiting_scan"
         ) {
-
 
             badge.textContent =
                 "WAITING SCAN";
 
-
             badge.className =
                 "status pending";
 
-
             title.textContent =
                 "Scan Shopee QR";
-
 
             desc.textContent =
                 "Scan using the Shopee app on your phone.";
 
 
-            // Tidak membuat interval baru di sini.
-            // qrRefresh sudah aktif sejak start.
-
+            // Force immediate image refresh
+            await loadQrImage();
 
         }
 
 
-
-        // =================================================
+        // ==============================================
         // CONFIRMING
-        // =================================================
+        // ==============================================
 
         else if (
-            data.status ===
-            "confirming"
+            data.status === "confirming"
         ) {
-
 
             badge.textContent =
                 "CONFIRMING";
 
-
             badge.className =
                 "status pending";
-
 
             title.textContent =
                 "Login detected";
 
-
             desc.textContent =
                 "Verifying Shopee Affiliate session...";
-
 
         }
 
 
-
-        // =================================================
+        // ==============================================
         // CONNECTED
-        // =================================================
+        // ==============================================
 
         else if (
-            data.status ===
-            "connected"
+            data.status === "connected"
         ) {
-
 
             stopQrTimers();
 
 
             badge.textContent =
                 "CONNECTED";
-
 
             badge.className =
                 "status confirmed";
@@ -1742,11 +1416,6 @@ async function checkQrStatus() {
 
             desc.textContent =
                 "Encrypted session saved successfully.";
-
-
-            setQrDebug(
-                "Shopee session connected successfully."
-            );
 
 
             document.getElementById(
@@ -1761,36 +1430,28 @@ async function checkQrStatus() {
                 "CONNECTED";
 
 
-            setTimeout(
-
-                () =>
-                    location.reload(),
-
-                1300
-
+            setQrDebug(
+                "CONNECTED — Shopee session saved."
             );
 
+
+            setTimeout(
+                () => location.reload(),
+                1300
+            );
 
         }
 
 
-
-        // =================================================
-        // FAILED / TIMEOUT
-        // =================================================
+        // ==============================================
+        // FAILED
+        // ==============================================
 
         else if (
-
-            data.status ===
-            "timeout"
-
+            data.status === "failed"
             ||
-
-            data.status ===
-            "failed"
-
+            data.status === "timeout"
         ) {
-
 
             stopQrTimers();
 
@@ -1810,63 +1471,40 @@ async function checkQrStatus() {
 
 
             title.textContent =
-
-                data.status ===
-                "timeout"
-
-                ?
-
-                "QR Login Expired"
-
-                :
-
-                "QR Login Failed";
+                data.status === "timeout"
+                ? "QR Login Expired"
+                : "QR Login Failed";
 
 
             desc.textContent =
                 data.error ||
+                data.worker_error ||
                 "Please try again.";
 
-
-            setQrDebug(
-                "Backend error: "
-                + (
-                    data.error ||
-                    data.status
-                )
-            );
-
-
         }
-
 
     }
 
     catch (error) {
-
 
         setQrDebug(
             "Status request error: "
             + error.message
         );
 
-
         console.error(
-            "QR status error",
+            "QR status request:",
             error
         );
 
-
     }
-
 
 }
 
 
-
-// =========================================================
+// =====================================================
 // REPORT IMPORT
-// =========================================================
+// =====================================================
 
 const reportForm =
     document.getElementById(
@@ -1876,13 +1514,11 @@ const reportForm =
 
 if (reportForm) {
 
-
     reportForm.addEventListener(
 
         "submit",
 
         async function(event) {
-
 
             event.preventDefault();
 
@@ -1904,13 +1540,11 @@ if (reportForm) {
 
             try {
 
-
                 const response =
                     await fetch(
                         "/admin/import-report",
                         {
-                            method:
-                                "POST",
+                            method: "POST",
 
                             body:
                                 new FormData(
@@ -1934,44 +1568,30 @@ if (reportForm) {
 
                 if (data.ok) {
 
-
                     setTimeout(
-
-                        () =>
-                            location.reload(),
-
+                        () => location.reload(),
                         1500
-
                     );
 
-
                 }
-
 
             }
 
             catch (error) {
 
-
                 resultBox.textContent =
                     "Import failed: "
                     + error.message;
 
-
             }
-
 
         }
 
     );
 
-
 }
-
 
 </script>
 
-
 </body>
-
 </html>
