@@ -6,106 +6,69 @@ from playwright.async_api import async_playwright
 from session_store import save_state
 
 
-# =========================================================
-# CONFIG
-# =========================================================
-
 QR_LOGIN_URL = os.getenv(
     "QR_LOGIN_URL",
     "https://shopee.co.id/buyer/login/qr?"
 )
 
-AFFILIATE_URL = (
-    "https://affiliate.shopee.co.id/"
-)
+AFFILIATE_URL = "https://affiliate.shopee.co.id/"
 
 TIMEOUT = int(
-    os.getenv(
-        "QR_LOGIN_TIMEOUT",
-        "180"
-    )
+    os.getenv("QR_LOGIN_TIMEOUT", "180")
 )
 
-QR_DIR = Path(
-    "/tmp/cashly_qr"
-)
+QR_DIR = Path("/tmp/cashly_qr")
+QR_DIR.mkdir(parents=True, exist_ok=True)
 
-QR_DIR.mkdir(
-    parents=True,
-    exist_ok=True
-)
-
-
-# =========================================================
-# EXCEPTIONS
-# =========================================================
 
 class QRLoginTimeout(Exception):
     pass
 
 
-# =========================================================
-# LOGGING
-# =========================================================
-
-def log(message: str):
-    print(
-        f"[QR] {message}",
-        flush=True
-    )
+def set_stage(job_store, job_id, stage):
+    job_store[job_id]["stage"] = stage
+    print(f"[QR] {stage}", flush=True)
 
 
-# =========================================================
-# QR LOGIN
-# =========================================================
+async def run_qr_login(job_id: str, job_store: dict):
 
-async def run_qr_login(
-    job_id: str,
-    job_store: dict
-):
-
-    qr_path = (
-        QR_DIR
-        / f"{job_id}.png"
-    )
+    qr_path = QR_DIR / f"{job_id}.png"
 
     browser = None
 
-    log(
-        f"Job started: {job_id}"
-    )
+    job_store[job_id]["qr_ready"] = False
+    job_store[job_id]["stage"] = "job_started"
 
     try:
 
-        # -------------------------------------------------
+        # =============================================
         # PLAYWRIGHT
-        # -------------------------------------------------
+        # =============================================
 
-        log(
-            "Starting Playwright"
+        set_stage(
+            job_store,
+            job_id,
+            "starting_playwright"
         )
 
         async with async_playwright() as p:
 
-            job_store[job_id][
-                "status"
-            ] = "opening"
+            job_store[job_id]["status"] = "opening"
 
-            chromium_path = (
-                p.chromium.executable_path
+            chromium_path = p.chromium.executable_path
+
+            job_store[job_id]["chromium_path"] = (
+                chromium_path
             )
 
-            log(
-                "Chromium executable: "
-                f"{chromium_path}"
-            )
+            # =============================================
+            # CHROMIUM
+            # =============================================
 
-            # -------------------------------------------------
-            # LAUNCH CHROMIUM
-            # -------------------------------------------------
-
-            log(
-                "Launching Chromium"
+            set_stage(
+                job_store,
+                job_id,
+                "launching_chromium"
             )
 
             browser = await asyncio.wait_for(
@@ -116,25 +79,15 @@ async def run_qr_login(
 
                     chromium_sandbox=False,
 
-                    executable_path=
-                        chromium_path,
+                    executable_path=chromium_path,
 
                     args=[
-
                         "--no-sandbox",
-
                         "--disable-setuid-sandbox",
-
                         "--disable-dev-shm-usage",
-
                         "--disable-gpu",
-
                         "--disable-software-rasterizer",
-
                         "--no-zygote",
-
-                        "--single-process",
-
                     ],
 
                 ),
@@ -143,13 +96,15 @@ async def run_qr_login(
 
             )
 
-            log(
-                "Chromium launched"
+            set_stage(
+                job_store,
+                job_id,
+                "chromium_launched"
             )
 
-            # -------------------------------------------------
-            # BROWSER CONTEXT
-            # -------------------------------------------------
+            # =============================================
+            # CONTEXT
+            # =============================================
 
             context = await browser.new_context(
 
@@ -160,25 +115,18 @@ async def run_qr_login(
                     "height": 900,
                 },
 
-                user_agent=(
-                    "Mozilla/5.0 "
-                    "(Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) "
-                    "Chrome/131.0.0.0 "
-                    "Safari/537.36"
-                ),
-
             )
 
             page = await context.new_page()
 
-            # -------------------------------------------------
-            # OPEN SHOPEE
-            # -------------------------------------------------
+            # =============================================
+            # SHOPEE
+            # =============================================
 
-            log(
-                "Opening Shopee QR page"
+            set_stage(
+                job_store,
+                job_id,
+                "opening_shopee"
             )
 
             try:
@@ -187,89 +135,71 @@ async def run_qr_login(
 
                     QR_LOGIN_URL,
 
-                    # IMPORTANT:
-                    # jangan tunggu semua JS Shopee selesai
                     wait_until="commit",
 
-                    timeout=20000,
+                    timeout=15000,
 
                 )
 
                 if response:
-
-                    log(
-                        "Shopee HTTP status: "
-                        f"{response.status}"
+                    job_store[job_id]["http_status"] = (
+                        response.status
                     )
 
-                else:
+            except Exception as e:
 
-                    log(
-                        "Shopee navigation returned "
-                        "no HTTP response object"
-                    )
-
-            except Exception as nav_error:
-
-                log(
-                    "Shopee navigation warning: "
-                    f"{type(nav_error).__name__}: "
-                    f"{nav_error}"
+                # Jangan langsung gagal.
+                # Kita tetap coba screenshot halaman yang ada.
+                job_store[job_id]["navigation_warning"] = (
+                    f"{type(e).__name__}: {e}"
                 )
 
-            # -------------------------------------------------
-            # CURRENT PAGE
-            # -------------------------------------------------
+            job_store[job_id]["current_url"] = page.url
 
-            log(
-                "Current Shopee URL: "
-                f"{page.url}"
+            set_stage(
+                job_store,
+                job_id,
+                "waiting_page_render"
             )
 
-            # beri halaman waktu render QR
-            await page.wait_for_timeout(
-                5000
-            )
+            await page.wait_for_timeout(5000)
 
-            # -------------------------------------------------
+            # =============================================
             # SCREENSHOT
-            # -------------------------------------------------
+            # =============================================
 
-            log(
-                "Taking QR screenshot"
+            set_stage(
+                job_store,
+                job_id,
+                "taking_screenshot"
             )
 
             await page.screenshot(
 
-                path=str(
-                    qr_path
-                ),
+                path=str(qr_path),
 
                 full_page=True,
 
             )
 
-            log(
-                "QR screenshot saved: "
-                f"{qr_path}"
-            )
+            if not qr_path.exists():
 
-            # frontend sekarang boleh mengambil screenshot
-            job_store[job_id][
-                "status"
-            ] = "waiting_scan"
+                raise RuntimeError(
+                    "Screenshot file tidak berhasil dibuat."
+                )
 
-            job_store[job_id][
+            job_store[job_id]["qr_ready"] = True
+            job_store[job_id]["status"] = "waiting_scan"
+
+            set_stage(
+                job_store,
+                job_id,
                 "qr_ready"
-            ] = True
-
-            # -------------------------------------------------
-            # WAIT FOR QR LOGIN
-            # -------------------------------------------------
-
-            log(
-                "Waiting for QR scan"
             )
+
+            # =============================================
+            # WAIT LOGIN
+            # =============================================
 
             started = (
                 asyncio
@@ -285,19 +215,17 @@ async def run_qr_login(
                 < TIMEOUT
             ):
 
-                await page.wait_for_timeout(
-                    1500
+                await page.wait_for_timeout(1500)
+
+                job_store[job_id]["current_url"] = (
+                    page.url
                 )
 
                 current_url = (
-                    page.url
-                    or ""
+                    page.url or ""
                 ).lower()
 
-                # ---------------------------------------------
-                # LOGIN DETECTION
-                # ---------------------------------------------
-
+                # Kalau login selesai dan masuk affiliate
                 if (
                     "affiliate.shopee.co.id"
                     in current_url
@@ -306,276 +234,168 @@ async def run_qr_login(
                     not in current_url
                 ):
 
-                    log(
-                        "QR scan detected"
+                    job_store[job_id]["status"] = (
+                        "confirming"
                     )
 
-                    job_store[job_id][
-                        "status"
-                    ] = "confirming"
+                    set_stage(
+                        job_store,
+                        job_id,
+                        "login_detected"
+                    )
 
                     break
 
-                # ---------------------------------------------
-                # REFRESH SCREENSHOT
-                # ---------------------------------------------
-
+                # Update screenshot QR
                 try:
 
                     await page.screenshot(
-
-                        path=str(
-                            qr_path
-                        ),
-
+                        path=str(qr_path),
                         full_page=True,
-
                     )
 
-                except Exception as screenshot_error:
+                except Exception as e:
 
-                    log(
-                        "Screenshot refresh warning: "
-                        f"{type(screenshot_error).__name__}: "
-                        f"{screenshot_error}"
-                    )
+                    job_store[job_id][
+                        "screenshot_warning"
+                    ] = str(e)
 
             else:
 
-                log(
-                    "QR login timeout"
-                )
-
-                try:
-
-                    if browser:
-
-                        await browser.close()
-
-                except Exception:
-                    pass
-
-                try:
-
-                    qr_path.unlink()
-
-                except Exception:
-                    pass
-
                 raise QRLoginTimeout(
-                    "QR login tidak selesai "
-                    "sebelum timeout."
+                    "QR login expired."
                 )
 
-            # -------------------------------------------------
-            # VERIFY AFFILIATE LOGIN
-            # -------------------------------------------------
+            # =============================================
+            # VERIFY AFFILIATE
+            # =============================================
 
-            log(
-                "Verifying Affiliate session"
+            set_stage(
+                job_store,
+                job_id,
+                "verifying_affiliate"
             )
 
             try:
 
-                verify_response = await page.goto(
+                await page.goto(
 
                     AFFILIATE_URL,
 
                     wait_until="commit",
 
-                    timeout=20000,
+                    timeout=15000,
 
                 )
-
-                if verify_response:
-
-                    log(
-                        "Affiliate HTTP status: "
-                        f"{verify_response.status}"
-                    )
 
                 await page.wait_for_timeout(
-                    2500
+                    2000
                 )
 
-            except Exception as verify_error:
+            except Exception as e:
 
-                log(
-                    "Affiliate verify warning: "
-                    f"{type(verify_error).__name__}: "
-                    f"{verify_error}"
-                )
+                job_store[job_id][
+                    "verify_warning"
+                ] = str(e)
 
-            # -------------------------------------------------
-            # VERIFY URL
-            # -------------------------------------------------
+            verify_url = page.url or ""
 
-            verify_url = (
-                page.url
-                or ""
-            )
+            job_store[job_id][
+                "verified_url"
+            ] = verify_url
 
-            log(
-                "Verify URL: "
-                f"{verify_url}"
-            )
-
-            if (
-                "buyer/login"
-                in verify_url.lower()
-            ):
+            if "buyer/login" in verify_url.lower():
 
                 raise RuntimeError(
-                    "Shopee meminta login ulang. "
-                    "Session belum berhasil dibuat."
+                    "Shopee session belum authenticated."
                 )
 
-            # -------------------------------------------------
+            # =============================================
             # SAVE SESSION
-            # -------------------------------------------------
+            # =============================================
 
-            log(
-                "Saving encrypted session"
+            set_stage(
+                job_store,
+                job_id,
+                "saving_session"
             )
 
-            state = await (
-                context.storage_state()
-            )
+            state = await context.storage_state()
 
             save_state(
 
                 state,
 
                 {
-                    "login_method":
-                        "qr",
-
-                    "verified_url":
-                        verify_url,
+                    "login_method": "qr",
+                    "verified_url": verify_url,
                 },
 
             )
 
-            # -------------------------------------------------
-            # CONNECTED
-            # -------------------------------------------------
+            job_store[job_id]["status"] = "connected"
+            job_store[job_id]["qr_ready"] = False
 
-            job_store[job_id][
-                "status"
-            ] = "connected"
-
-            job_store[job_id][
-                "qr_ready"
-            ] = False
-
-            log(
-                "Shopee session connected"
+            set_stage(
+                job_store,
+                job_id,
+                "connected"
             )
 
-            # -------------------------------------------------
-            # CLEAN QR FILE
-            # -------------------------------------------------
-
             try:
-
                 qr_path.unlink()
-
             except Exception:
                 pass
 
-            # -------------------------------------------------
-            # CLOSE BROWSER
-            # -------------------------------------------------
-
-            try:
-
-                await browser.close()
-
-            except Exception:
-                pass
+            await browser.close()
 
             return {
-
-                "ok":
-                    True,
-
-                "verified_url":
-                    verify_url,
-
+                "ok": True,
+                "verified_url": verify_url,
             }
-
-    # =====================================================
-    # ASYNC TIMEOUT
-    # =====================================================
-
-    except asyncio.TimeoutError:
-
-        log(
-            "FAILED: Chromium launch "
-            "operation timed out"
-        )
-
-        try:
-
-            if browser:
-
-                await browser.close()
-
-        except Exception:
-            pass
-
-        raise RuntimeError(
-            "Chromium launch timeout "
-            "di Railway."
-        )
-
-    # =====================================================
-    # QR TIMEOUT
-    # =====================================================
 
     except QRLoginTimeout:
 
+        job_store[job_id]["stage"] = (
+            "qr_timeout"
+        )
+
         raise
 
-    # =====================================================
-    # GENERAL ERROR
-    # =====================================================
+    except asyncio.TimeoutError:
 
-    except Exception as error:
+        job_store[job_id]["stage"] = (
+            "operation_timeout"
+        )
 
-        log(
-            "FAILED: "
-            f"{type(error).__name__}: "
-            f"{error}"
+        raise RuntimeError(
+            "Browser operation timeout."
+        )
+
+    except Exception as e:
+
+        job_store[job_id]["stage"] = (
+            "failed"
+        )
+
+        job_store[job_id]["worker_error"] = (
+            f"{type(e).__name__}: {e}"
         )
 
         try:
-
             if browser:
-
                 await browser.close()
-
         except Exception:
             pass
 
         raise
 
 
-# =========================================================
-# GET QR SCREENSHOT
-# =========================================================
+def get_qr_path(job_id: str):
 
-def get_qr_path(
-    job_id: str
-):
-
-    path = (
-        QR_DIR
-        / f"{job_id}.png"
-    )
+    path = QR_DIR / f"{job_id}.png"
 
     if not path.exists():
-
         return None
 
     return path
